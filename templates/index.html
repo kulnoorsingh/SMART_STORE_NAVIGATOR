@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    
+    <main style="min-height: calc(100vh - 149px);" class="text-center p-8 bg-gray-50 relative overflow-hidden ">
+        <div class="absolute inset-0 bg-cover bg-center opacity-30" style="background-image: url('./static/img/1624845.jpg');"></div>
+        <div class="relative z-10 container-jz">
+            <h1 class="text-5xl font-bold text-gray-800">
+                Smart Store Navigator
+            </h1>
+            <p class="text-xl mt-4 text-gray-600">
+                Revolutionizing Retail Navigation with Smart Technology.
+            </p>
+            <div class="mt-6">
+                <a href="/navigator" class="px-8 py-3 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition duration-300">
+                    Open Navigator
+                </a>
+            </div>
+            
+            <p class="text-lg text-gray-700 mt-2">
+                Our Collaboration with freshco super store ensures that customers can effortlessly navigate stores track inventory in real-time and enjoy a seamless shopping expirience. We make shopping faster, smarter and more convinient for everyone. Join us in shaping the future of retail !
+            </p>
+        </div>
+        
+    <section class=" py-12">
+        <div class="text-center">
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">
+                Explore Our Features
+            </h2>
+            <img alt="QR code for Smart Store Navigator" class="mx-auto my-4 rounded-lg shadow-md" src="./static/Images/qrcode.png" style="height: 150px; width: 150px;" />
+            <p class="text-lg text-gray-700 mt-2">
+                Scan the QR code to access the Smart Store Navigator directly on your device!
+            </p>
+        </div>
+    </section>
+    </main>
+    
+{% endblock %}

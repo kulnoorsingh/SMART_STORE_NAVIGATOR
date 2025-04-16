@@ -1,0 +1,53 @@
+<html>
+
+<head>
+    <title>
+        Smart Store Navigator
+    </title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&amp;display=swap" rel="stylesheet" />
+    <style>
+        .container ,.container-jz{
+            margin: auto;
+        }
+        
+        @media (min-width: 640px) {
+            .container-jz {
+                max-width: 640px
+            }
+        }
+
+        @media (min-width: 768px) {
+            .container-jz {
+                max-width: 768px
+            }
+        }
+    </style>
+</head>
+
+<body class="font-roboto">
+    <header class="flex  items-center p-4">
+        <a href="/" class="flex items-center">
+            <img alt="Smart Store Navigator logo" class="mr-2" style="height: 60px;width: 100px;"
+                src="./static/Images/logo.png" />
+            <span class="text-xl font-bold">
+                Smart Store Navigator
+            </span>
+            </div>
+            <nav class="space-x-4">
+                <a href="/about" class="text-gray-700 hover:text-green-500">About Us</a>
+                <a href="/navigator" class="text-gray-700 hover:text-green-500">Department</a>
+                <a href="/contact" class="text-gray-700 hover:text-green-500">Contact Us</a>
+            </nav>
+    </header>
+    {% block content %}
+    {% endblock %}
+
+    <footer style="" class="bg-gray-200 py-4 text-center">
+        <p>&copy; 2023 Smart Store Navigator. All rights reserved.</p>
+    </footer>
+</body>
+
+</html>

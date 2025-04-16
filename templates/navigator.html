@@ -1,0 +1,415 @@
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>
+        Smartstore Navigator
+    </title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
+    <style>
+        .mic-icon.active {
+            color: red;
+        }
+
+        body {
+            background-color: #f6feed;
+        }
+
+        img:hover {
+            border: 1px solid rgb(104, 252, 129);
+        }
+
+        .product-card {
+            transition: all 0.3s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .container-jz {
+            margin: auto;
+            width: 100%
+        }
+
+        @media (min-width: 640px) {
+            .container-jz {
+                max-width: 640px
+            }
+        }
+
+        @media (min-width: 768px) {
+            .container-jz {
+                max-width: 768px
+            }
+        }
+
+        .tooltip {
+            position: absolute;
+            background-color: white;
+            border: 1px solid black;
+            border-radius: 5px;
+            padding: 10px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="">
+    <header class="bg-green-700 text-white p-4 flex justify-between items-center">
+        <a href="/">
+            <h1 class="text-lg font-bold">
+                Department Page
+            </h1>
+        </a>
+        <div class="flex items-center">
+            <i class="fas fa-globe mr-2">
+            </i>
+            <select id="languageSelect" class="bg-green-700 text-white outline-none">
+                {% for language in languages %}
+                <option value="{{ language.language_code }}" data-dir="ltr">{{ language.language_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </header>
+    <main class="container-jz p-4">
+        <div class="flex justify-center items-center mb-8">
+            <i class="fas fa-map-marker-alt text-2xl mr-2" id="locationIcon"></i>
+            <div class="flex items-center border-2 border-black rounded-full px-4 py-2 w-full max-w-md">
+                <i class="fas fa-search text-xl mr-2"></i>
+                <input class="flex-grow outline-none bg-transparent" id="textInput" placeholder="Search products" type="text" />
+                <i class="fas fa-microphone mic-icon text-xl ml-2" id="micIcon"></i>
+            </div>
+        </div>
+        <!-- Tooltip for location details -->
+        <div id="tooltip" class="tooltip hidden">
+            <p><b>Address</b> <br /> -> 850 Saddletowne Cir NE, Calgary, AB T3J 0H5 <hr /> </p> <br />
+            <p><b>Name</b> <br /> -> Smart Store Navigator<hr /> </p> <br />
+            <p><b>Phone Number</b> <br /> -> +1 (368) 603-5871 <hr /> </p>
+        </div>
+
+        <div class="grid grid-cols-4 gap-8 justify-items-center mb-8">
+            {% for category in categories %}
+            <div class="category-item flex flex-col items-center cursor-pointer"
+                data-category-id="{{ category.category_id }}">
+                <img alt="{{ category.category_name }}" class="w-16 h-16 object-contain mb-2"
+                    src="/static/{{ category.icon_url }}" />
+                <span class="text-center text-sm">{{ category.category_name }}</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="searchResults" class="mt-8">
+            <div id="loader" class="loader hidden"></div>
+            <div id="products" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            <div id="pagination" class="flex justify-center mt-6 space-x-2"></div>
+        </div>
+    </main>
+</body>
+<script>
+    // Check for browser support
+    if (!('webkitSpeechRecognition' in window)) {
+        alert('Your browser does not support speech recognition. Please use Google Chrome or Firefox.');
+    } else {
+        const recognition = new webkitSpeechRecognition();
+        // recognition.lang = 'en-US';
+        recognition.lang = 'hi-IN';
+        recognition.continuous = false;
+        recognition.interimResults = true;
+
+        const textInput = document.getElementById('textInput');
+        const micIcon = document.getElementById('micIcon');
+
+        recognition.onresult = function (event) {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                transcript += event.results[i][0].transcript;
+            }
+            textInput.value = transcript;
+
+            // Trigger search when speech recognition ends with results
+            if (transcript.trim() !== '') {
+                searchProducts();
+            }
+        };
+
+        recognition.onstart = function () {
+            micIcon.classList.add('active');
+        };
+
+        recognition.onend = function () {
+            micIcon.classList.remove('active');
+        };
+
+        recognition.onerror = function (event) {
+            console.error('Speech recognition error', event.error);
+            micIcon.classList.remove('active');
+        };
+
+        micIcon.addEventListener('click', function () {
+            if (micIcon.classList.contains('active')) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        });
+    }
+
+    // Language selection handling
+    const languageSelect = document.getElementById('languageSelect');
+    languageSelect.addEventListener('change', function () {
+        const selectedLanguage = this.value;
+        localStorage.setItem('selectedLanguage', selectedLanguage);
+
+        // Refresh search results with new language
+        if (currentSearchState.active) {
+            searchProducts();
+        }
+    });
+
+    // Track current search state
+    const currentSearchState = {
+        active: false,
+        page: 1,
+        categoryId: null,
+        searchText: ''
+    };
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function () {
+        const savedLanguage = localStorage.getItem('selectedLanguage');
+        if (savedLanguage) {
+            languageSelect.value = savedLanguage;
+        }
+
+        // Add event listener for search input
+        textInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                searchProducts();
+            }
+        });
+
+        // Add event listeners for category items
+        document.querySelectorAll('.category-item').forEach(item => {
+            item.addEventListener('click', function () {
+                const categoryId = this.getAttribute('data-category-id');
+                currentSearchState.categoryId = categoryId;
+                currentSearchState.page = 1;
+                searchProducts();
+
+                // Highlight selected category
+                document.querySelectorAll('.category-item').forEach(cat => {
+                    cat.classList.remove('bg-green-100', 'rounded-lg', 'p-2');
+                });
+                this.classList.add('bg-green-100', 'rounded-lg', 'p-2');
+            });
+        });
+    });
+
+    // Function to search products using the API
+    function searchProducts() {
+        const searchText = textInput.value.trim();
+        const language = languageSelect.value;
+
+        // Update search state
+        currentSearchState.active = true;
+        currentSearchState.searchText = searchText;
+
+        // Show loader
+        const loader = document.getElementById('loader');
+        loader.classList.remove('hidden');
+
+        // Build API URL with parameters
+        let apiUrl = `/search_products?language=${encodeURIComponent(language)}&page_no=${currentSearchState.page}`;
+
+        if (searchText) {
+            apiUrl += `&searchText=${encodeURIComponent(searchText)}`;
+        }
+
+        if (currentSearchState.categoryId) {
+            apiUrl += `&category_id=${encodeURIComponent(currentSearchState.categoryId)}`;
+        }
+
+        // Fetch products from API
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                displayProducts(data);
+                createPagination(data);
+            })
+            .catch(error => {
+                console.error('Error fetching products:', error);
+                document.getElementById('products').innerHTML = `
+                    <div class="col-span-full text-center text-red-600">
+                        <p>Error loading products. Please try again.</p>
+                    </div>
+                `;
+            })
+            .finally(() => {
+                loader.classList.add('hidden');
+            });
+    }
+
+    // Function to display products
+    function displayProducts(data) {
+        const productscontainer = document.getElementById('products');
+
+        if (data.products.length === 0) {
+            productscontainer.innerHTML = `
+                <div class="col-span-full text-center">
+                    <p>No products found. Try a different search.</p>
+                </div>
+            `;
+            return;
+        }
+
+        let productsHTML = '';
+
+        data.products.forEach(product => {
+            productsHTML += `
+                <div class="product-card bg-white rounded-lg overflow-hidden shadow-md">
+                    <div class="p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-lg font-semibold mb-2">${product.product_name || 'Unnamed Product'}</h3>
+                            <span class="font-bold text-green-700">$${parseFloat(product.price).toFixed(2)}</span>
+                        </div>
+                        <p class="text-sm text-gray-700 line-clamp-3">${product.description || 'No description available'}</p>
+                        <div class="mt-2 mb-3">
+                            <div class="flex items-center text-sm text-gray-700 mb-1">
+                                <i class="fas fa-layer-group mr-2 text-green-600"></i>
+                                <span>Floor: ${product.floor_number || 'N/A'}, Aisle: ${product.aisle_number || 'N/A'}, Row: ${product.row_number || 'N/A'}</span>
+                            </div>
+                            
+                            <div class="flex items-center text-sm text-gray-700 mb-1">
+                                <i class="fas fa-box mr-2 text-green-600"></i>
+                                <span>${product.stock_status || 'Unknown stock status'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-2 mb-3">
+                            <div class="flex flex-wrap gap-1">
+                                ${product.tags ? product.tags.split(',').map(tag =>
+                `<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">${tag.trim()}</span>`
+            ).join('') : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        productscontainer.innerHTML = productsHTML;
+    }
+
+    // Function to create pagination
+    function createPagination(data) {
+        const paginationcontainer = document.getElementById('pagination');
+        const totalPages = data.total_pages;
+        const currentPage = data.page_no;
+
+        if (totalPages <= 1) {
+            paginationcontainer.innerHTML = '';
+            return;
+        }
+
+        let paginationHTML = '';
+
+        // Previous button
+        paginationHTML += `
+            <button class="px-3 py-1 rounded ${currentPage === 1 ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}" 
+                ${currentPage === 1 ? 'disabled' : 'onclick="changePage(' + (currentPage - 1) + ')"'}>
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        `;
+
+        // Page numbers
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHTML += `
+                <button class="px-3 py-1 rounded ${i === currentPage ? 'bg-green-700 text-white' : 'bg-gray-200 hover:bg-gray-300'}" 
+                    onclick="changePage(${i})">
+                    ${i}
+                </button>
+            `;
+        }
+
+        // Next button
+        paginationHTML += `
+            <button class="px-3 py-1 rounded ${currentPage === totalPages ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}" 
+                ${currentPage === totalPages ? 'disabled' : 'onclick="changePage(' + (currentPage + 1) + ')"'}>
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        `;
+
+        paginationcontainer.innerHTML = paginationHTML;
+    }
+
+    // Function to change page
+    function changePage(page) {
+        currentSearchState.page = page;
+        searchProducts();
+
+        // Scroll back to top of results
+        document.getElementById('searchResults').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const locationIcon = document.getElementById('locationIcon');
+        const tooltip = document.getElementById('tooltip');
+
+        locationIcon.addEventListener('click', function (event) {
+            // Toggle tooltip visibility
+            tooltip.classList.toggle('hidden');
+
+            // Position the tooltip near the icon
+            const rect = locationIcon.getBoundingClientRect();
+            tooltip.style.top = `${rect.bottom + window.scrollY}px`;
+            tooltip.style.left = `${rect.left + window.scrollX}px`;
+        });
+
+        // Optional: Hide tooltip when clicking outside
+        document.addEventListener('click', function (event) {
+            if (!locationIcon.contains(event.target) && !tooltip.contains(event.target)) {
+                tooltip.classList.add('hidden');
+            }
+        });
+    });
+</script>
+
+</html>
